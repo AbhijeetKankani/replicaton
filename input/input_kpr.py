@@ -1,4 +1,4 @@
-import datetime
+import datetime 
 import logging
 from dataclasses import asdict
 
@@ -105,7 +105,43 @@ def kpr_kosten(
     query_costs_report15 = get_query_costs_report15(delta_12_month, delta_1_month, product_id, calc_tables)
 
     # Execute queries
-    execute_kpr_queries(logger, kpr_files, product, query_costs_report15)
+    df_costs_report15 = execute_kpr_queries(logger, kpr_files, product, query_costs_report15)
+
+    # Start of Abhijeet: Inserting the KPR costs data into HANA Cloud
+    if df_costs_report15 is not None and not df_costs_report15.empty:
+        logger.info("Inserting KPR data from DataFrame into HANA Cloud...")
+        try:
+            connection = connect_to_hana()  #  connect_to_hana is available in  utils
+            cursor = connection.cursor()
+
+            # Assuming your HANA table has corresponding columns to your DataFrame
+            sql = """
+                INSERT INTO KPR_HANA_TABLE (ekpnr, Prozessmenge, Fixkosten, Varkosten, ...)
+                VALUES (?, ?, ?, ?, ...)
+            """
+
+            # Map the DataFrame to tuples for insertion
+            data_to_insert = [
+                (
+                    row['ekpnr'], row['Prozessmenge'], row['Fixkosten'], row['Varkosten'], ...
+                )
+                for index, row in df_costs_report15.iterrows()
+            ]
+
+            # Execute the insert statement with the DataFrame data
+            cursor.executemany(sql, data_to_insert)
+            connection.commit()
+
+            logger.info(f"Inserted {len(data_to_insert)} rows into HANA Cloud.")
+        except Exception as e:
+            logger.error(f"Error inserting KPR data into HANA Cloud: {str(e)}")
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        logger.warning("DataFrame is empty. No data to insert into HANA Cloud.")
+    
+    # End of Abhijeet
 
 
 def get_query_costs_report15(since_month, until_month, product_id, calc_tables) -> str:
@@ -129,7 +165,7 @@ def get_query_costs_report15(since_month, until_month, product_id, calc_tables) 
     """
 
 
-def execute_kpr_queries(logger, kpr_files, product, query_costs_report15):
+def execute_kpr_queries(logger, kpr_files, product, query_costs_report15) -> pd.DataFrame:
     """
     Execute the main KPR queries and store the results in relevant dataframes.
     """
@@ -137,6 +173,7 @@ def execute_kpr_queries(logger, kpr_files, product, query_costs_report15):
     logger.info(f"KPR costs report for product '{product}' fetched successfully.")
     cast_types(df_costs_report15, KPR_COLUMN_TYPES)
     save_df(kpr_files.df_kpr_costs_report15, df_costs_report15)
+    return df_costs_report15
 
 
 def kpr_kosten_merge(logger: logging.Logger, files: KprFiles, product: str):
@@ -206,4 +243,3 @@ def get_kpr_zustellung_query(product, reference_date):
             AND Produkt_id in ({'1' if product.lower() == 'paket' else '34,35'})
         GROUP BY abrnr
     """
-
