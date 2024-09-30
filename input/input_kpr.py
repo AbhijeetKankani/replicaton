@@ -127,6 +127,7 @@ def kpr_kosten(
                 )
                 for index, row in df_costs_report15.iterrows()
             ]
+            
 
             # Execute the insert statement with the DataFrame data
             cursor.executemany(sql, data_to_insert)

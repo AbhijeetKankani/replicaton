@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 # Relevant static tables for KPR and DWH
-STATIC_TABLES = {
+STATIC_TABLES =  {
     "kpr_db": "DB_KPR_PLT.vw_f_db",
     "kpr_kosten": "DB_KPR_PLT.vw_f_kosten",
     "kpr_produkte": "DBT_KPR_PLT.tb_produkte",

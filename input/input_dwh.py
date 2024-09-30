@@ -33,7 +33,6 @@ def input_dwh(
                 INSERT INTO DWH_HANA_TABLE (ekpnr, gewicht_sum, gewicht_bis01kg, gewicht_bis02kg, ...)
                 VALUES (?, ?, ?, ?, ...)
             """
-
             # Map the DataFrame to tuples for insertion
             data_to_insert = [
                 (
